@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .animate-marquee-rtl {
+    animation: marquee-rtl 15s linear infinite;
+  }
+  .animate-marquee-ltr {
+    animation: marquee-ltr 15s linear infinite;
+  }
+  
+  @keyframes marquee-rtl {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+  @keyframes marquee-ltr {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+}

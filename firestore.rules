@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /settings/{documentId} {
+      // Allow public read so the app can load for all users
+      allow read: if true;
+      // Allow public write (protected by client-side password in the app)
+      allow write: if true;
+    }
+
+    match /visitors/{visitorId} {
+      // Allow anyone to log their visit
+      allow create, update: if true;
+      // Allow reading and deleting visitors from the settings page
+      allow read, delete: if true;
+    }
+  }
+}

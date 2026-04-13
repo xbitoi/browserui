@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "Global settings for the application",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string", "description": "The URL to display in the main interface" },
+        "isActive": { "type": "boolean", "description": "Whether the app is currently active or turned off" },
+        "settingsPassword": { "type": "string", "description": "Password to access the settings" },
+        "welcomeMessage": { "type": "string", "description": "A welcome message to show users" },
+        "welcomeMessageDuration": { "type": "number", "description": "Duration in seconds to show the welcome message" },
+        "themeColor": { "type": "string", "description": "Primary theme color" },
+        "databaseUrl": { "type": "string", "description": "PostgreSQL connection string" },
+        "broadcastMessage": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "id": { "type": "number" },
+            "isActive": { "type": "boolean" }
+          }
+        },
+        "messageHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "number" },
+              "text": { "type": "string" },
+              "date": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "required": ["url", "isActive", "settingsPassword"]
+    },
+    "Visitor": {
+      "title": "Visitor",
+      "description": "A record of a user visiting the app",
+      "type": "object",
+      "properties": {
+        "visitedAt": { "type": "string", "format": "date-time" },
+        "userAgent": { "type": "string" },
+        "platform": { "type": "string" },
+        "language": { "type": "string" },
+        "visitCount": { "type": "number" }
+      },
+      "required": ["visitedAt", "userAgent"]
+    }
+  },
+  "firestore": {
+    "/settings/{documentId}": {
+      "schema": { "$ref": "#/entities/AppSettings" },
+      "description": "Singleton document 'main' holds the app settings"
+    },
+    "/visitors/{visitorId}": {
+      "schema": { "$ref": "#/entities/Visitor" },
+      "description": "Collection of visitor logs"
+    }
+  }
+}

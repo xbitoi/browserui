@@ -20,8 +20,36 @@ const DEFAULT_SETTINGS = {
   databaseType: 'postgresql' as 'postgresql' | 'firebase',
   marqueeDirection: 'rtl' as 'rtl' | 'ltr',
   isWelcomePermanent: false,
+  bannerOpacity: 100,
+  bannerFontSize: 18,
+  bannerTextColor: '#ffffff',
+  marqueeSpeed: 15,
+  bannerSound: 'none',
+  popupSound: 'pop',
   broadcastMessage: { text: '', id: 0, isActive: false },
   messageHistory: [] as Array<{ id: number, text: string, date: string }>
+};
+
+const SOUNDS = {
+  none: '',
+  bell: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+  chime: 'https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3',
+  notification: 'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3',
+  pop: 'https://assets.mixkit.co/active_storage/sfx/298/298-preview.mp3'
+};
+
+const hexToRgba = (hex: string, opacity: number) => {
+  const r = parseInt(hex.slice(1, 3), 16) || 0;
+  const g = parseInt(hex.slice(3, 5), 16) || 0;
+  const b = parseInt(hex.slice(5, 7), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+};
+
+const playSound = (soundKey: string) => {
+  if (soundKey && soundKey !== 'none' && SOUNDS[soundKey as keyof typeof SOUNDS]) {
+    const audio = new Audio(SOUNDS[soundKey as keyof typeof SOUNDS]);
+    audio.play().catch(e => console.log("Audio play failed (autoplay blocked):", e));
+  }
 };
 
 export default function App() {
@@ -190,27 +218,35 @@ function MainView({ settings, onOpenSettings }: { key?: React.Key, settings: typ
   };
 
   useEffect(() => {
-    if (settings.welcomeMessage && (settings.welcomeMessageDuration > 0 || settings.isWelcomePermanent)) {
-      setShowWelcome(true);
-      if (!settings.isWelcomePermanent) {
-        const timer = setTimeout(() => setShowWelcome(false), settings.welcomeMessageDuration * 1000);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      setShowWelcome(false);
+    setShowWelcome(true);
+    
+    if (settings.bannerSound && settings.bannerSound !== 'none') {
+      playSound(settings.bannerSound);
+    }
+    
+    const isPermanent = settings.welcomeMessage && settings.isWelcomePermanent;
+    let duration = 2; // Always show for at least 2 seconds
+    
+    if (settings.welcomeMessage && settings.welcomeMessageDuration > 0) {
+      duration = Math.max(2, settings.welcomeMessageDuration);
+    }
+
+    if (!isPermanent) {
+      const timer = setTimeout(() => setShowWelcome(false), duration * 1000);
+      return () => clearTimeout(timer);
     }
   }, [settings.welcomeMessage, settings.welcomeMessageDuration, settings.isWelcomePermanent]);
 
   useEffect(() => {
     if (settings.broadcastMessage?.isActive && settings.broadcastMessage?.text) {
-      const seenId = localStorage.getItem('seenMessageId');
-      if (seenId !== String(settings.broadcastMessage.id)) {
-        setPopup({ show: true, text: settings.broadcastMessage.text, id: settings.broadcastMessage.id });
+      setPopup({ show: true, text: settings.broadcastMessage.text, id: settings.broadcastMessage.id });
+      if (settings.popupSound && settings.popupSound !== 'none') {
+        playSound(settings.popupSound);
       }
     } else {
       setPopup(prev => ({ ...prev, show: false }));
     }
-  }, [settings.broadcastMessage?.id, settings.broadcastMessage?.isActive, settings.broadcastMessage?.text]);
+  }, [settings.broadcastMessage?.id, settings.broadcastMessage?.isActive, settings.broadcastMessage?.text, settings.popupSound]);
 
   if (!settings.isActive) {
     return (
@@ -246,33 +282,31 @@ function MainView({ settings, onOpenSettings }: { key?: React.Key, settings: typ
             animate={{ height: 64, opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="w-full flex items-center justify-between px-4 shadow-md z-20 text-white overflow-hidden shrink-0 cursor-pointer"
-            style={{ backgroundColor: settings.themeColor }}
+            className="w-full flex items-center justify-between px-4 shadow-md z-20 overflow-hidden shrink-0 cursor-pointer"
+            style={{ 
+              backgroundColor: hexToRgba(settings.themeColor, settings.bannerOpacity ?? 100),
+              color: settings.bannerTextColor || '#ffffff'
+            }}
             onClick={handleBannerClick}
             onTouchStart={handleBannerTouchStart}
             onTouchMove={handleBannerTouchMove}
           >
-            <div className="flex-1 overflow-hidden relative flex items-center h-full pointer-events-none">
+            <div className="flex-1 overflow-hidden relative flex items-center h-full pointer-events-none" style={{ fontSize: `${settings.bannerFontSize ?? 18}px` }}>
               {settings.welcomeMessage.length > 40 ? (
-                <div className={cn("whitespace-nowrap font-bold text-lg", settings.marqueeDirection === 'ltr' ? 'animate-marquee-ltr' : 'animate-marquee-rtl')}>
+                <div 
+                  className={cn("whitespace-nowrap font-bold", settings.marqueeDirection === 'ltr' ? 'animate-marquee-ltr' : 'animate-marquee-rtl')}
+                  style={{ animationDuration: `${settings.marqueeSpeed || 15}s` }}
+                >
                   {settings.welcomeMessage}
                 </div>
               ) : (
-                <div className="font-bold text-lg w-full flex items-center justify-center">
+                <div className="font-bold w-full flex items-center justify-center">
                   <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="truncate">
                     {settings.welcomeMessage}
                   </motion.span>
                 </div>
               )}
             </div>
-            
-            <button 
-              onClick={(e) => { e.stopPropagation(); onOpenSettings(); }}
-              className="p-2 rounded-full hover:bg-black/20 transition-colors z-50 mr-2 shrink-0"
-              title="الإعدادات"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -312,7 +346,6 @@ function MainView({ settings, onOpenSettings }: { key?: React.Key, settings: typ
               <p className="text-gray-600 mb-6 leading-relaxed">{popup.text}</p>
               <button 
                 onClick={() => {
-                  localStorage.setItem('seenMessageId', String(popup.id));
                   setPopup({ ...popup, show: false });
                 }}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors"
@@ -408,6 +441,18 @@ function SettingsView({ settings, onClose }: { key?: React.Key, settings: typeof
       loadVisitors();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (JSON.stringify(localSettings) === JSON.stringify(settings)) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleSave();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [localSettings, settings]);
 
   const loadVisitors = async () => {
     setIsLoadingVisitors(true);
@@ -732,6 +777,55 @@ function SettingsView({ settings, onClose }: { key?: React.Key, settings: typeof
                       <span className="text-sm text-gray-500 font-mono" dir="ltr">{localSettings.themeColor}</span>
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">لون خط الشريط العلوي</label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="color" 
+                        value={localSettings.bannerTextColor || '#ffffff'}
+                        onChange={(e) => setLocalSettings({...localSettings, bannerTextColor: e.target.value})}
+                        className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+                      />
+                      <span className="text-sm text-gray-500 font-mono" dir="ltr">{localSettings.bannerTextColor || '#ffffff'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">شفافية الشريط العلوي (%)</label>
+                    <input 
+                      type="range" 
+                      min="10"
+                      max="100"
+                      value={localSettings.bannerOpacity ?? 100}
+                      onChange={(e) => setLocalSettings({...localSettings, bannerOpacity: parseInt(e.target.value) || 100})}
+                      className="w-full"
+                    />
+                    <div className="text-xs text-gray-500 text-center">{localSettings.bannerOpacity ?? 100}%</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">حجم خط الشريط العلوي (px)</label>
+                    <input 
+                      type="number" 
+                      min="12"
+                      max="48"
+                      value={localSettings.bannerFontSize ?? 18}
+                      onChange={(e) => setLocalSettings({...localSettings, bannerFontSize: parseInt(e.target.value) || 18})}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">رنة إشعار الشريط العلوي</label>
+                    <select
+                      value={localSettings.bannerSound || 'none'}
+                      onChange={(e) => setLocalSettings({...localSettings, bannerSound: e.target.value})}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="none">بدون صوت</option>
+                      <option value="bell">جرس (Bell)</option>
+                      <option value="chime">رنين (Chime)</option>
+                      <option value="notification">إشعار (Notification)</option>
+                      <option value="pop">انبثاق (Pop)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -878,7 +972,7 @@ function SettingsView({ settings, onClose }: { key?: React.Key, settings: typeof
                 
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">اتجاه حركة الشريط العلوي</label>
-                  <div className="flex gap-6">
+                  <div className="flex gap-6 mb-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
                         type="radio" 
@@ -902,6 +996,15 @@ function SettingsView({ settings, onClose }: { key?: React.Key, settings: typeof
                       <span className="text-sm text-gray-800">من اليسار لليمين</span>
                     </label>
                   </div>
+                  <label className="block text-sm text-gray-600 mb-1">سرعة مرور الكتابة (بالثواني - رقم أقل يعني أسرع)</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    max="60"
+                    value={localSettings.marqueeSpeed || 15}
+                    onChange={(e) => setLocalSettings({...localSettings, marqueeSpeed: parseInt(e.target.value) || 15})}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                  />
                 </div>
               </div>
 
@@ -951,6 +1054,20 @@ function SettingsView({ settings, onClose }: { key?: React.Key, settings: typeof
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all resize-none h-32"
                   placeholder="اكتب رسالتك هنا..."
                 />
+                <div className="mt-4 mb-4">
+                  <label className="block text-sm text-gray-600 mb-1">رنة إشعار الرسالة المنبثقة</label>
+                  <select
+                    value={localSettings.popupSound || 'pop'}
+                    onChange={(e) => setLocalSettings({...localSettings, popupSound: e.target.value})}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="none">بدون صوت</option>
+                    <option value="bell">جرس (Bell)</option>
+                    <option value="chime">رنين (Chime)</option>
+                    <option value="notification">إشعار (Notification)</option>
+                    <option value="pop">انبثاق (Pop)</option>
+                  </select>
+                </div>
                 <button 
                   onClick={handleSendMessage}
                   disabled={saveStatus === 'saving' || !messageText.trim()}

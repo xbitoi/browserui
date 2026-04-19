@@ -1,0 +1,4 @@
+-keepattributes *Annotation*
+-keep public class * extends android.app.Activity
+-keep public class * extends android.webkit.WebViewClient
+-dontwarn android.webkit.**

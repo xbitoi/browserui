@@ -1,0 +1,15 @@
+# URL to APK Converter - Dependencies
+# Python 3.10+ required
+
+# GUI Framework (Modern Tkinter)
+customtkinter>=5.2.0
+
+# Web Scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Image Processing (for icon generation)
+Pillow>=10.0.0
+
+# Additional utilities
+packaging>=23.0

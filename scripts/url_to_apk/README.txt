@@ -1,6 +1,6 @@
 ================================================================
-          URL to APK Converter v1.0.0
-          Professional Desktop Application
+          URL to APK Converter v2.0.0
+          Professional Desktop Application for Windows 11
 ================================================================
 
 DESCRIPTION
@@ -8,6 +8,16 @@ DESCRIPTION
 This application converts any website URL into an Android APK 
 project. It generates a complete Android Studio project that 
 wraps your website in a native WebView container.
+
+
+NEW IN v2.0
+-----------
+- Auto-install missing dependencies on first run
+- Clear and detailed error messages (Arabic/English)
+- Professional animated progress indicator
+- Improved error handling and recovery
+- Better UI with status indicators
+- Enhanced validation for all inputs
 
 
 FEATURES
